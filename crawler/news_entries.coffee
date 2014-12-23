@@ -1,61 +1,66 @@
 exec = require('child_process').exec
 underscore = require('underscore')
+lodash = require('lodash')
+async = require('async')
 moment = require('moment')
 uuid = require('node-uuid')
-nano = require('nano')('http://localhost:5984')
-database = nano.use('news_entries')
+queue = require('kue')
+jobs = queue.createQueue({disableSearch:true})
 
-db_insert = (database, id, map) ->
-  database.insert map, id, (error, body, header)->
-    console.log('Error: Inserting ' + map + ' to ' + id, error.reason) if error
-  console.log('Info: Inserted ' + map + ' to ' + id + '!' )
+create_job = (url, cb) ->
+  job = jobs.create('news_url', url).attempts(5).save (err) ->
+    if err
+      console.log("error in push to queue")
+      return cb(err)
 
-db_update = (database, id, update_map) ->
-  database.get id, (error, body) ->
-    if error # the document has NOT been created
-      console.log("Error: Getting " + id, error.reason)
-      return false
-    map = body
-    for own key, value of update_map
-      map[key] = value
-    map['updated_at'] = moment()
-    database.insert map, id, (error, body, header)->
-      console.log('Error: Updating ' + map + ' to ' + id, error.reason) if error
-    console.log('Info: Updated ' + map + ' to ' + id + '!' )
+    console.log(url)
+    cb(true)
 
 urls_insert = (urls) ->
-  underscore.map urls, (url)->
-    now = moment()
-    nid = url.match(/\d+$/)[0]
-    # Check if we already handled
-    url_map = { "status": 'will', "created_at": now, "updated_at": now, "url": url, "nid": nid }
-    console.log(JSON.stringify(url_map))
+  # underscore.map urls, (url)->
+  async.every urls, create_job, (result)->
+    # create_job jobs, {'url': url}, (e)->
+    #   console.log(e) if e
+    if result is true
+      jobs.shutdown (e)->
+        console.log(e) if e
+        console.log('shutdown exit!')
+      , 5000
+      console.log("Done!")
+
+    # now = moment()
+    # nid = url.match(/\d+$/)[0]
+    # # Check if we already handled
+    # url_map = { "status": 'will', "created_at": now, "updated_at": now, "url": url, "nid": nid }
+    # console.log(JSON.stringify(url_map))
 
     # exec 'casperjs news_article.coffee "' + url + '"', (error, stdout, stderr)->
-	   #  console.log('exec error: ' + error) if error
-	   #  #console.log('stdout: ' + stdout)
-	   #  console.log('stderr: ' + stderr)
-	   #  article = JSON.parse(stdout)
-	   #  console.log(article)
+     #  console.log('exec error: ' + error) if error
+     #  #console.log('stdout: ' + stdout)
+     #  console.log('stderr: ' + stderr)
+     #  article = JSON.parse(stdout)
+     #  console.log(article)
 
-	    # Create job here to insert article to database
+      # Create job here to insert article to database
 
-	    # Write the max nid to indicate what we handled
+      # Write the max nid to indicate what we handled
 
 # Read the nid from fs
+urls = []
 # For loop 1..100 to try 100 pages here, until get the handled item, then terminate
 for i in [1..5]
-	do(i) ->
-		exec 'casperjs each_entry.coffee ' + i, (error, stdout, stderr)->
-		  console.log('exec error: ' + error) if error
-		  #console.log('stdout: ' + stdout)
-		  console.log('stderr: ' + stderr)
-		  urls = JSON.parse(stdout)
+  do(i) ->
+    exec 'casperjs each_entry.coffee ' + i, (error, stdout, stderr)->
+      console.log('exec error: ' + error) if error
+      #console.log('stdout: ' + stdout)
+      console.log('stderr: ' + stderr) if stderr
+      urls = lodash.union(urls, JSON.parse(stdout))
 
-		  urls_uniq = underscore.uniq(urls)
-		  console.log urls_uniq.length
+      urls_uniq = lodash.uniq(urls, true)
 
-		  urls_insert(urls_uniq)
+      if i is 5
+        console.log urls_uniq.length
+        urls_insert(urls_uniq)
 
 
 # status: will | done
