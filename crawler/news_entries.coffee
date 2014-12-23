@@ -26,33 +26,36 @@ db_update = (database, id, update_map) ->
 urls_insert = (urls) ->
   underscore.map urls, (url)->
     now = moment()
-    url_map = { "status": 'will', "created_at": now, "updated_at": now }
-    #console.log(JSON.stringify(url_map))
+    nid = url.match(/\d+$/)[0]
+    # Check if we already handled
+    url_map = { "status": 'will', "created_at": now, "updated_at": now, "url": url, "nid": nid }
+    console.log(JSON.stringify(url_map))
 
-    database.head url, (error, _, header)->
-      if error # if not, insert it
-        db_insert database, url, url_map
-      else
-        console.log('Warning: URL ' + url + ' already exists!')
-        process.exit(1)
+    # exec 'casperjs news_article.coffee "' + url + '"', (error, stdout, stderr)->
+	   #  console.log('exec error: ' + error) if error
+	   #  #console.log('stdout: ' + stdout)
+	   #  console.log('stderr: ' + stderr)
+	   #  article = JSON.parse(stdout)
+	   #  console.log(article)
 
-# urls = [
-#   "http://news.6park.com/newspark/index.php?app=news&act=view&nid=27554"
-#   "http://news.6park.com/newspark/index.php?app=news&act=view&nid=27544"
-#   "http://news.6park.com/newspark/index.php?app=news&act=view&nid=27543"
-#   "http://news.6park.com/newspark/index.php?app=news&act=view&nid=27542"
-# ]
+	    # Create job here to insert article to database
 
-exec 'casperjs each_entry.coffee', (error, stdout, stderr)->
-  console.log('exec error: ' + error) if error
-  #console.log('stdout: ' + stdout)
-  console.log('stderr: ' + stderr)
-  urls = JSON.parse(stdout)
+	    # Write the max nid to indicate what we handled
 
-  urls_uniq = underscore.uniq(urls)
-  #console.log urls_uniq.length
+# Read the nid from fs
+# For loop 1..100 to try 100 pages here, until get the handled item, then terminate
+for i in [1..5]
+	do(i) ->
+		exec 'casperjs each_entry.coffee ' + i, (error, stdout, stderr)->
+		  console.log('exec error: ' + error) if error
+		  #console.log('stdout: ' + stdout)
+		  console.log('stderr: ' + stderr)
+		  urls = JSON.parse(stdout)
 
-  urls_insert(urls_uniq)
+		  urls_uniq = underscore.uniq(urls)
+		  console.log urls_uniq.length
+
+		  urls_insert(urls_uniq)
 
 
 # status: will | done

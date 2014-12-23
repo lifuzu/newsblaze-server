@@ -102,12 +102,12 @@ article_insert = (map, cb) ->
   #     # replace the first pic_link
   #     map['pic_link'] = pic_name if /0_/.test(pic_name)
 
-  db_insert articles, id, map, (body) ->
-    articles.attachment.insert id, 'content.md', data, 'text/json', { rev: body['rev'] }, (error, body)->
-      if error
-        console.log('Error: Insert attachment to ' + id, error.reason)
-        cb(error, map['origin_link'])
-      console.log('Info: Inserted attachment "content.md" to ' + id + '!')
+  # db_insert articles, id, map, (body) ->
+  #   articles.attachment.insert id, 'content.md', data, 'text/json', { rev: body['rev'] }, (error, body)->
+  #     if error
+  #       console.log('Error: Insert attachment to ' + id, error.reason)
+  #       cb(error, map['origin_link'])
+  #     console.log('Info: Inserted attachment "content.md" to ' + id + '!')
 
       # for own pic_name, pic_link of name_link_dict
       #   do (pic_name, pic_link) ->
@@ -149,7 +149,7 @@ exit = ()->
   process.exit(-1)
 
 crawler = (url) ->
-  exec 'casperjs news_one.coffee "' + url + '"', (error, stdout, stderr)->
+  exec 'casperjs news_article.coffee "' + url + '"', (error, stdout, stderr)->
     console.log('exec error: ' + error) if error
     #console.log('stdout: ' + stdout)
     console.log('stderr: ' + stderr)
@@ -162,15 +162,15 @@ crawler = (url) ->
       entries_done(url)
 
 # main function
-entries.view 'views', 'list_status_will_docs', (error, body) ->
-  if error
-    console.log('Error: List all documents with status \'will\'', error.reason)
-    process.exit(-1)
+#entries.view 'views', 'list_status_will_docs', (error, body) ->
+#  if error
+#    console.log('Error: List all documents with status \'will\'', error.reason)
+#    process.exit(-1)
   #body.rows.forEach (doc) ->
-  for doc in body.rows
-    do (doc) ->
-      console.log doc.id
-      crawler doc.id
+#  for doc in body.rows
+#    do (doc) ->
+#      console.log doc.id
+#      crawler doc.id
 
 # debug entry
-#crawler "http://news.6park.com/newspark/index.php?app=news&act=view&nid=3266"
+crawler "http://news.6park.com/newspark/index.php?app=news&act=view&nid=3266"

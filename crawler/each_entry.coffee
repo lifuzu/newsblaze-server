@@ -3,8 +3,10 @@ casper = require('casper').create({
   #logLevel: "debug"
   })
 
+page = casper.cli.get(0)
+
 url_base = 'http://news.6park.com/newspark'
-url_page = url_base + '?p=' + 432
+url_page = url_base + '?p=' + page
 
 #links = (url_page + i for i in [446..450])
 
