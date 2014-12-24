@@ -49,5 +49,8 @@ parse_article = (url, cb) ->
     #console.log('stdout: ' + stdout)
     return cb(true, stderr) if stderr
     article = JSON.parse(stdout)
+    # Add nid for sorting
+    nid = url.match(/\d+$/)[0]
+    article['nid'] = nid
     return cb(false, article)
 
