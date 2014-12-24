@@ -43,6 +43,12 @@ casper.then ()->
   pic_link = result_pic[2] if result_pic? or null
   #this.echo(pic_link)
 
+  # Collect all of the images
+  pic_links = []
+  regex_pics = /(!\[.*?\]\()(.+?)(\))/g
+  result_pics = content_md.match(regex_pics)
+  pic_links.push(p.match(regex_pic)[2]) for p in result_pics
+
   regex_6park = /(www\.6park\.com)/g
   content_md = content_md.replace(regex_6park, '') if content_md.match(regex_6park)
 
@@ -52,6 +58,7 @@ casper.then ()->
     "publish_at": publish_at,
     "pic_link": pic_link,
     "origin_link": url,
+    "images": pic_links,
     "content": content_md
     }))
 
