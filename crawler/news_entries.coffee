@@ -8,24 +8,23 @@ queue = require('kue')
 jobs = queue.createQueue({disableSearch:true})
 
 create_job = (url, cb) ->
-  job = jobs.create('news_url', url).attempts(5).save (err) ->
+  nid = url.match(/\d+$/)[0]
+  job = jobs.create('news_url', {'url': url, 'nid': nid, 'title': nid}).attempts(5).save (err) ->
     if err
       console.log("error in push to queue")
       return cb(err)
 
     console.log(url)
-    cb(true)
+    return cb(true)
 
 urls_insert = (urls) ->
-  # underscore.map urls, (url)->
   async.every urls, create_job, (result)->
-    # create_job jobs, {'url': url}, (e)->
-    #   console.log(e) if e
     if result is true
       jobs.shutdown (e)->
         console.log(e) if e
-        console.log('shutdown exit!')
+        console.log('Shutdown queue!')
       , 5000
+      console.log urls.length
       console.log("Done!")
 
     # now = moment()
@@ -46,21 +45,46 @@ urls_insert = (urls) ->
       # Write the max nid to indicate what we handled
 
 # Read the nid from fs
-urls = []
+
 # For loop 1..100 to try 100 pages here, until get the handled item, then terminate
-for i in [1..5]
-  do(i) ->
-    exec 'casperjs each_entry.coffee ' + i, (error, stdout, stderr)->
-      console.log('exec error: ' + error) if error
-      #console.log('stdout: ' + stdout)
-      console.log('stderr: ' + stderr) if stderr
-      urls = lodash.union(urls, JSON.parse(stdout))
+# for i in [1..5]
+#   do(i) ->
+#     exec 'casperjs each_entry.coffee ' + i, (error, stdout, stderr)->
+#       console.log('exec error: ' + error) if error
+#       #console.log('stdout: ' + stdout)
+#       console.log('stderr: ' + stderr) if stderr
+#       urls = lodash.union(urls, JSON.parse(stdout))
 
-      urls_uniq = lodash.uniq(urls, true)
+#       urls_uniq = lodash.uniq(urls, true)
 
-      if i is 5
-        console.log urls_uniq.length
+#       if i is 5
+#         console.log urls_uniq.length
+#         urls_insert(urls_uniq)
+
+
+parse_urls = (page, cb) ->
+  exec 'casperjs each_entry.coffee ' + page, (error, stdout, stderr)->
+    return cb(error, null) if error
+    return cb(stderr, null) if stderr
+
+    urls = JSON.parse(stdout)
+    return cb(null, lodash.uniq(urls))
+
+urls = []
+index = 0
+for page in [1..5]
+  do(page) ->
+    parse_urls page, (e, results) ->
+      # console.log(results.length)
+      # console.log(result) for result in results
+      # console.log(page)
+      urls = lodash.union(urls, results)
+      index += 1
+      if index is 5
+        urls_uniq = lodash.uniq(urls)
         urls_insert(urls_uniq)
+
+
 
 
 # status: will | done
