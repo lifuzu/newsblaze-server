@@ -47,7 +47,12 @@ casper.then ()->
   pic_links = []
   regex_pics = /(!\[.*?\]\()(.+?)(\))/g
   result_pics = content_md.match(regex_pics)
-  pic_links.push(p.match(regex_pic)[2]) for p in result_pics
+  if result_pics?
+    for p in result_pics
+      do (p) ->
+        pex = p.match(regex_pic)
+        if pex?
+          pic_links.push(pex[2])
 
   regex_6park = /(www\.6park\.com)/g
   content_md = content_md.replace(regex_6park, '') if content_md.match(regex_6park)

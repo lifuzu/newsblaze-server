@@ -1,6 +1,8 @@
 #queue_service.js
 exec = require('child_process').exec
 save_article = require('./save_article')
+fetch_image = require('./fetch_image')
+async = require('async')
 que = require('kue')
 jobs = que.createQueue()
 
@@ -22,10 +24,17 @@ jobs.process 'news_url', (job, done, ctx) ->
       console.log(result)
       throw e
     # console.log(result)
-    save_article.save_article result, (e, message)->
-      console.log(message)
-      throw e if e
-      done()
+    async.every result.images, fetch_image_to_caches, (fetched) ->
+      if fetched
+        for uri in result.images
+          do(uri) ->
+            filename = uri.substring(uri.lastIndexOf('/') + 1);
+            result.content = result.content.replace(uri, 'caches/' + filename)
+        # console.log(result)
+        save_article.save_article result, (e, message)->
+          console.log(message)
+          throw e if e
+          done()
 
 # jobs.process('topic', function(job, done, ctx){
 #   mongodb.Topic.Save(job.data, function(err, message) {
@@ -54,3 +63,7 @@ parse_article = (url, cb) ->
     article['nid'] = nid
     return cb(false, article)
 
+fetch_image_to_caches = (uri, cb) ->
+  filename = uri.substring(uri.lastIndexOf('/') + 1);
+  fetch_image.fetch_image uri, '../server/public/caches/' + filename, () ->
+    cb(true)
