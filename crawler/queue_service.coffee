@@ -24,17 +24,23 @@ jobs.process 'news_url', (job, done, ctx) ->
       console.log(result)
       throw e
     # console.log(result)
-    async.every result.images, fetch_image_to_caches, (fetched) ->
-      if fetched
-        for uri in result.images
-          do(uri) ->
-            filename = uri.substring(uri.lastIndexOf('/') + 1);
-            result.content = result.content.replace(uri, 'caches/' + filename)
-        # console.log(result)
-        save_article.save_article result, (e, message)->
-          console.log(message)
-          throw e if e
-          done()
+
+    # Ignore to fetch images and modify the urls in content
+    # async.every result.images, fetch_image_to_caches, (fetched) ->
+    #   if fetched
+    #     for uri in result.images
+    #       do(uri) ->
+    #         filename = uri.substring(uri.lastIndexOf('/') + 1);
+    #         result.content = result.content.replace(uri, 'caches/' + filename)
+    #     # console.log(result)
+    #     save_article.save_article result, (e, message)->
+    #       console.log(message)
+    #       throw e if e
+    #       done()
+    save_article.save_article result, (e, message)->
+      console.log(message)
+      throw e if e
+      done()
 
 # jobs.process('topic', function(job, done, ctx){
 #   mongodb.Topic.Save(job.data, function(err, message) {
